@@ -1,0 +1,53 @@
+services:
+  # Servicio 1: Servidor Node + Frontend del Gemelo Digital
+  gemelo-digital:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gemelo-digital
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - LANGFLOW_URL=http://langflow:7860
+      - LANGFLOW_FLOW_ID=${LANGFLOW_FLOW_ID:-5948dff7-734a-4820-b301-9c1632f078fc}
+      - LANGFLOW_API_KEY=${LANGFLOW_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      langflow:
+        condition: service_healthy
+    networks:
+      - aero-network
+
+  # Servicio 2: Motor de Agentes IA Langflow
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: langflow
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_HOST=0.0.0.0
+      - LANGFLOW_PORT=7860
+      - LANGFLOW_DO_NOT_TRACK=true
+      - LANGFLOW_AUTO_LOGIN=true
+    volumes:
+      - langflow-data:/app/langflow
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7860/api/v1/version')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - aero-network
+
+volumes:
+  langflow-data:
+    driver: local
+
+networks:
+  aero-network:
+    driver: bridge

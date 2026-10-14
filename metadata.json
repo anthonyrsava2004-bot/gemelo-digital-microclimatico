@@ -1,0 +1,6 @@
+{
+  "name": "Gemelo Digital de Calidad del Aire y Soluciones en Naturaleza Urbana",
+  "description": "Plataforma de Gemelo Digital a microescala y presentación interactiva para simular dispersión de contaminantes, mitigar calor extremo y planificar Soluciones Basadas en la Naturaleza (NbS).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

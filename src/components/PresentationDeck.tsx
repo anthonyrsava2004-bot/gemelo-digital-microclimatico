@@ -20,8 +20,12 @@ import {
   Cpu, 
   Activity,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Download,
+  Check
 } from 'lucide-react';
+import { exportTableToCSV } from '../utils/exportUtils';
+import { ExplainabilityCard } from './ExplainabilityCard';
 
 interface PresentationDeckProps {
   onGoToTwin: () => void;
@@ -66,6 +70,25 @@ export const PresentationDeck: React.FC<PresentationDeckProps> = ({ onGoToTwin }
     return () => clearInterval(interval);
   }, [isAutoPlay, currentSlideIndex]);
 
+  const [copiedSlide, setCopiedSlide] = useState<boolean>(false);
+
+  const handleExportSlideCSV = () => {
+    const headers = ['Campo', 'Detalle'];
+    const rows = [
+      ['ID Diapositiva', slide.id],
+      ['Categoría', slide.category],
+      ['Título', slide.title],
+      ['Titular Principal', slide.headline],
+      ['Conclusión Clave', slide.keyTakeaway],
+      ...slide.contentBlocks.map((b, i) => [`Bloque ${i + 1}: ${b.subtitle}`, `${b.description} | Metricas: ${b.metricsBadge || 'N/A'}`]),
+      ['Notas Orador', slide.speakerNotes],
+    ];
+
+    exportTableToCSV(headers, rows, `diapositiva-${slide.id}.csv`);
+    setCopiedSlide(true);
+    setTimeout(() => setCopiedSlide(false), 2000);
+  };
+
   return (
     <div className={`flex flex-col h-full bg-slate-950 text-slate-100 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
       {/* Top Slide Control Bar */}
@@ -82,8 +105,17 @@ export const PresentationDeck: React.FC<PresentationDeckProps> = ({ onGoToTwin }
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           <button
+            onClick={handleExportSlideCSV}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-700 text-slate-200 hover:text-white font-medium border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Descargar contenido de la diapositiva en formato CSV para reportes"
+          >
+            {copiedSlide ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Download className="w-3.5 h-3.5 text-emerald-400" />}
+            <span className="hidden sm:inline">{copiedSlide ? '¡Grabado!' : 'Grabar Diapositiva (CSV)'}</span>
+          </button>
+
+          <button
             onClick={() => setShowSpeakerNotes(!showSpeakerNotes)}
-            className={`px-3 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
               showSpeakerNotes
                 ? 'bg-sky-600/20 text-sky-300 border-sky-500/40'
                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
@@ -316,6 +348,17 @@ export const PresentationDeck: React.FC<PresentationDeckProps> = ({ onGoToTwin }
             <p className="leading-relaxed">{slide.speakerNotes}</p>
           </div>
         )}
+
+        {/* Dynamic Slide Explainability */}
+        <ExplainabilityCard
+          title={`Interpretabilidad Metodológica: ${slide.title}`}
+          physicsPrinciple={`Fundamento físico del eje: ${slide.category}. Modela los gradientes de transporte turbulento k-ε y balance energético superficial mediante simulaciones RANS acopladas con el modelo UTCI humano.`}
+          regulatoryThreshold="Cumplimiento de la Directiva 2008/50/CE y Estándares de Confort Bioclimático ISO 7730."
+          decisionImpact={`Conclusión técnica aplicable: ${slide.keyTakeaway}`}
+          recommendedAction="Utilizar estos gráficos y evidencias en informes de planeamiento general municipal para justificar la renaturalización de ejes viarios."
+          onExportCSV={handleExportSlideCSV}
+          exportCSVLabel="Grabar Diapositiva (CSV)"
+        />
 
         {/* Bottom Slide Navigation Bar */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">

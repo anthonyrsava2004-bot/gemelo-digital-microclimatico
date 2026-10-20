@@ -18,8 +18,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Leaf
+  Leaf,
+  Download,
+  Check
 } from 'lucide-react';
+import { exportTableToCSV } from '../utils/exportUtils';
+import { ExplainabilityCard } from './ExplainabilityCard';
 
 interface NbSToolboxProps {
   selectedTool: NbSType | null;
@@ -108,10 +112,41 @@ export const NbSToolbox: React.FC<NbSToolboxProps> = ({
     onAddNbS(newNbs);
   };
 
+  const [copiedCatalog, setCopiedCatalog] = useState<boolean>(false);
+
+  const handleExportCatalogCSV = () => {
+    const headers = [
+      'Nombre de la Solución NbS',
+      'Categoría',
+      'Especies Típicas',
+      'Eficiencia Refrigeración (0-10)',
+      'Captación PM2.5 (0-10)',
+      'Absorción NO2 (0-10)',
+      'Retención Pluvial (%)',
+      'Índice de Coste',
+      'Mecanismos Biofísicos Clave'
+    ];
+    const rows = NBS_CATALOG.map((item) => [
+      item.name,
+      item.category,
+      item.speciesExamples.join('; '),
+      item.coolingEfficiency,
+      item.pmTrappingEfficiency,
+      item.no2UptakeEfficiency,
+      `${item.runoffRetention}%`,
+      item.costIndex,
+      item.mechanisms.join(' | ')
+    ]);
+
+    exportTableToCSV(headers, rows, 'catalogo-soluciones-nbs.csv');
+    setCopiedCatalog(true);
+    setTimeout(() => setCopiedCatalog(false), 2000);
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-3.5 border-b border-slate-800 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
             <Leaf className="w-5 h-5" />
@@ -125,9 +160,19 @@ export const NbSToolbox: React.FC<NbSToolboxProps> = ({
             </p>
           </div>
         </div>
-        <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 font-semibold">
-          {placedNbS.length} Activas
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCatalogCSV}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-700 text-slate-200 hover:text-white text-[11px] font-medium border border-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+            title="Descargar catálogo botánico y técnico en CSV"
+          >
+            {copiedCatalog ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Download className="w-3.5 h-3.5 text-emerald-400" />}
+            <span className="hidden sm:inline">{copiedCatalog ? '¡Grabado!' : 'Grabar Catálogo CSV'}</span>
+          </button>
+          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 font-semibold shrink-0">
+            {placedNbS.length} Activas
+          </span>
+        </div>
       </div>
 
       {/* Category Pills */}
@@ -394,6 +439,19 @@ export const NbSToolbox: React.FC<NbSToolboxProps> = ({
           </div>
         </div>
       )}
+
+      {/* Botanic Bio-Physics Explainability */}
+      <div className="p-3 bg-slate-950 border-t border-slate-800">
+        <ExplainabilityCard
+          title="Biofísica Botánica: Área Foliar (LAI) y Porosidad Aerodinámica"
+          physicsPrinciple="El equilibrio botánico en el cañón requiere optimizar dos fenómenos contrapuestos: la sombra/enfriamiento evaporativo (que mejora con copas frondosas) y la autolimpieza por ventilación (que requiere que el viento penetre a través del dosel). Un LAI de 2.5 a 3.5 con poda de copa abierta optimiza ambas variables."
+          regulatoryThreshold="Recomendaciones de Infraestructura Verde Urbana (Comisión Europea y Directrices de Renaturalización Municipal)."
+          decisionImpact="Seleccionar especies adecuadas para cada estrato: árboles permeables para el centro de calle y setos tupidos en la línea de acera para desviar la pluma vehicular."
+          recommendedAction="Evitar especies de hoja perenne hiperselladas a baja cota en cañones con H/W > 1.2."
+          onExportCSV={handleExportCatalogCSV}
+          exportCSVLabel="Grabar Catálogo NbS (CSV)"
+        />
+      </div>
     </div>
   );
 };

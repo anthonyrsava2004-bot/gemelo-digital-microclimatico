@@ -103,7 +103,7 @@ export default function App() {
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
             {/* Left: Simulation Canvas (8 cols) */}
             <div className="xl:col-span-8 flex flex-col gap-4">
-              <div className="h-[520px] md:h-[580px] w-full">
+              <div className="w-full flex flex-col">
                 <DigitalTwinCanvas
                   canyon={canyon}
                   meteo={meteo}

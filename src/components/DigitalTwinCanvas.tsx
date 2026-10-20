@@ -17,8 +17,12 @@ import {
   SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
-  Building
+  Building,
+  Camera,
+  Check
 } from 'lucide-react';
+import { exportCanvasAsHighResImage } from '../utils/exportUtils';
+import { ExplainabilityCard } from './ExplainabilityCard';
 
 interface DigitalTwinCanvasProps {
   canyon: UrbanCanyonConfig;
@@ -60,6 +64,75 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
   const [splitSliderPos, setSplitSliderPos] = useState<number>(100); // 100 = full NbS, 50 = split
   const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
   const [showSplitMode, setShowSplitMode] = useState<boolean>(false);
+  const [exportSuccess, setExportSuccess] = useState<boolean>(false);
+
+  const EXPLAINABILITY_BY_LAYER: Record<LayerMode, {
+    title: string;
+    physicsPrinciple: string;
+    regulatoryThreshold: string;
+    decisionImpact: string;
+    recommendedAction: string;
+  }> = {
+    pm25: {
+      title: 'Dispersión y Atrapamiento de Partículas Finas (PM2.5)',
+      physicsPrinciple: 'En cañones urbanos profundos (H/W > 1.2), la velocidad del viento decae cerca del pavimento y el vórtice helicoidal arrastra las emisiones vehiculares hacia la acera de sotavento. Las NbS retienen partículas por impacto inercial y difusión estomática.',
+      regulatoryThreshold: 'Directriz OMS 2021: Máximo 15 µg/m³ (promedio diario). Concentraciones superiores a 25 µg/m³ activan alertas de salud pública para grupos vulnerables.',
+      decisionImpact: 'Permite certificar si las especies arbóreas colocadas facilitan la ventilación o si su dosel es excesivamente tupido y actúa como techo trampa para el humo del tráfico.',
+      recommendedAction: 'Utilizar árboles con porosidad foliar moderada (LAI 2.5-3.5) y setos bajos a 1.4m que desvíen la pluma vehicular fuera de la acera.',
+    },
+    temperature: {
+      title: 'Temperatura Superficial e Isla de Calor a Microescala',
+      physicsPrinciple: 'El asfalto y hormigón convierten la radiación solar directa en calor sensible (alcanzando >50°C en horas punta). La vegetación disipa esta energía mediante enfriamiento evaporativo latente (~150-300 W/m²).',
+      regulatoryThreshold: 'Confort bioclimático estival: Una reducción de 2°C a 4°C en temperatura de aire peatonal mitiga hasta un 40% el riesgo de hospitalización por choque térmico.',
+      decisionImpact: 'Identifica los puntos críticos de sobrecalentamiento en aceras peatonales para priorizar la asignación presupuestaria en sombra vegetal.',
+      recommendedAction: 'Maximizar el porcentaje de sombra en aceras transitadas superando el 40% y sustituir pavimentos impermeables por pavimentos drenantes con albedo reflectante.',
+    },
+    wind: {
+      title: 'Aerodinámica CFD k-ε y Régimen de Ventilación del Cañón',
+      physicsPrinciple: 'Régimen de Skimming Flow: El viento que sopla sobre los tejados induce un gradiente de corte turbulento que genera un vórtice rotatorio principal en el cañón. Si el viento a cota de suelo cae bajo 0.8 m/s, se pierde la capacidad de autolimpieza atmosférica.',
+      regulatoryThreshold: 'Velocidad de confort y ventilación urbana: 1.0 m/s a 2.5 m/s garantiza dispersión sin causar molestias aerodinámicas a peatones.',
+      decisionImpact: 'Evita crear barreras continuas impenetrables a cotas bajas que ahoguen la circulación de aire fresco.',
+      recommendedAction: 'Mantener un gálibo libre de ramas de al menos 3 metros de altura entre el suelo y la base de las copas para preservar el canal de ventilación peatonal.',
+    },
+    no2: {
+      title: 'Concentración de Dióxido de Nitrógeno (NO2) de Tubos de Escape',
+      physicsPrinciple: 'Gas reactivo emitido por la combustión vehicular. Por ser un contaminante gaseoso, no se filtra mecánicamente como el polvo; su remoción biológica ocurre por absorción fotoquímica en estomas abiertos durante horas diurnas.',
+      regulatoryThreshold: 'Guía OMS: 25 µg/m³ (24h) y umbral horario de 200 µg/m³ (Directiva Europea de Calidad del Aire 2008/50/CE).',
+      decisionImpact: 'Permite diseñar barreras vegetales que incrementen la distancia aerodinámica efectiva entre el escape vehicular y la zona de respiración ciudadana.',
+      recommendedAction: 'Interponer setos densos perimetrales entre calzada y carril bici/acera para forzar a la pluma de NO2 a ascender antes de diluirse.',
+    },
+    utci_comfort: {
+      title: 'Índice Universal de Confort Térmico (UTCI)',
+      physicsPrinciple: 'Modelo termofisiológico humano de 7 nodos que computa el intercambio térmico neto entre radiación solar/infrarroja, convección del aire, sudoración y resistencia de la vestimenta.',
+      regulatoryThreshold: 'Categorías UTCI: 9°C a 26°C (Confort Óptimo); 26°C a 32°C (Estrés Moderado); 32°C a 38°C (Estrés Fuerte); >38°C (Estrés Muy Fuerte).',
+      decisionImpact: 'Es el indicador de referencia municipal para declarar zonas de refugio climático y evaluar el bienestar de la población transeúnte.',
+      recommendedAction: 'Reducir la Temperatura Radiante Media (Tmrt) instalando pérgolas o doseles de árboles de sombra amplia (Platanus / Celtis).',
+    },
+  };
+
+  const handleExportCanvasHD = useCallback(() => {
+    if (!canvasRef.current) return;
+    const layerNames: Record<LayerMode, string> = {
+      pm25: 'Calidad del Aire PM2.5 (Aerosoles Finos)',
+      temperature: 'Campo Térmico Superficial y Radiación',
+      wind: 'Aerodinámica CFD y Vectores de Vórtice',
+      no2: 'Dióxido de Nitrógeno (Tráfico Vehicular)',
+      utci_comfort: 'Índice Universal de Confort Térmico (UTCI)',
+    };
+
+    exportCanvasAsHighResImage(canvasRef.current, `gemelo-digital-canyon-${activeLayer}-hd.png`, {
+      title: 'GEMELO DIGITAL MICROCLIMÁTICO URBANO — AUDITORÍA BIOFÍSICA',
+      subtitle: `Simulación Dinámica: ${layerNames[activeLayer]} | ${placedNbS.length} Soluciones NbS Desplegadas`,
+      layer: layerNames[activeLayer],
+      canyonRatio: canyon.aspectRatioHW,
+      windSpeed: meteo.windSpeedRoof,
+      temp: meteo.ambientTemp,
+      timestamp: new Date().toLocaleString('es-ES'),
+    });
+
+    setExportSuccess(true);
+    setTimeout(() => setExportSuccess(false), 2500);
+  }, [activeLayer, placedNbS.length, canyon.aspectRatioHW, meteo.windSpeedRoof, meteo.ambientTemp]);
 
   // Hover Probe Telemetry
   const [probeState, setProbeState] = useState<{
@@ -856,13 +929,23 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
           {/* Play / Pause simulation */}
           <button
             onClick={onTogglePlay}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
               isPlaying
                 ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500'
                 : 'bg-amber-600 text-white shadow-sm hover:bg-amber-500'
             }`}
           >
             {isPlaying ? '▶ Simulación en Vivo' : '⏸ Pausado'}
+          </button>
+
+          {/* Grabar Figura HD */}
+          <button
+            onClick={handleExportCanvasHD}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold border border-emerald-500/50 shadow-md transition-all cursor-pointer"
+            title="Grabar figura del cañón en Ultra-Alta Calidad (PNG 4K con metadatos y sellos)"
+          >
+            {exportSuccess ? <Check className="w-3.5 h-3.5 text-emerald-200" /> : <Camera className="w-3.5 h-3.5 text-emerald-200" />}
+            <span>{exportSuccess ? '¡Grabado!' : 'Grabar Figura HD'}</span>
           </button>
         </div>
       </div>
@@ -1028,6 +1111,19 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Dynamic Scientific Explainability & Interpretability Card */}
+      <div className="p-3 bg-slate-950/90 border-t border-slate-800">
+        <ExplainabilityCard
+          title={EXPLAINABILITY_BY_LAYER[activeLayer].title}
+          physicsPrinciple={EXPLAINABILITY_BY_LAYER[activeLayer].physicsPrinciple}
+          regulatoryThreshold={EXPLAINABILITY_BY_LAYER[activeLayer].regulatoryThreshold}
+          decisionImpact={EXPLAINABILITY_BY_LAYER[activeLayer].decisionImpact}
+          recommendedAction={EXPLAINABILITY_BY_LAYER[activeLayer].recommendedAction}
+          onExportImage={handleExportCanvasHD}
+          exportImageLabel="Grabar Figura Canvas (PNG 4K)"
+        />
       </div>
     </div>
   );

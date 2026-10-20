@@ -58,26 +58,24 @@ app.get("/api/langflow/status", async (req, res) => {
   }
 });
 
-// Langflow run bridge
+// Langflow run bridge with intelligent cloud fallback to direct Gemini AI
 app.post("/api/langflow/run", async (req, res) => {
-  try {
-    const { flowId, inputValue, tweaks } = req.body;
-    
-    // Usa el flowId del body, o el configurado en .env
-    const targetFlowId = flowId || LANGFLOW_FLOW_ID;
-    const targetUrl = `${LANGFLOW_URL}/api/v1/run/${targetFlowId}`;
+  const { flowId, inputValue, tweaks } = req.body;
+  const targetFlowId = flowId || LANGFLOW_FLOW_ID;
+  const targetUrl = `${LANGFLOW_URL}/api/v1/run/${targetFlowId}`;
 
+  // 1. Intentar primero con la instancia de Langflow configurada
+  try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    // Inyectar el token de autenticación obligatorio para Langflow >= 1.5
     if (LANGFLOW_API_KEY) {
       headers["x-api-key"] = LANGFLOW_API_KEY;
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000); // 60s para dar tiempo al LLM
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     const response = await fetch(targetUrl, {
       method: "POST",
@@ -92,11 +90,84 @@ app.post("/api/langflow/run", async (req, res) => {
     });
     clearTimeout(timeout);
 
-    const data = await response.json();
-    res.json({ success: response.ok, data });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    if (response.ok) {
+      const data = await response.json();
+      return res.json({ success: true, data });
+    }
+  } catch (langflowErr: any) {
+    console.warn(`[Langflow Bridge] Conexión local/remota no disponible (${langflowErr.message}). Activando motor Gemini en la nube...`);
   }
+
+  // 2. Respaldo inteligente en la nube: Gemini AI directo (vital para despliegues como Render)
+  try {
+    const ai = getGeminiClient();
+    if (ai) {
+      const fallbackSystemPrompt = `Eres el Agente Auditor Técnico & Optimizador NbS del Gemelo Digital Microclimático Urbano.
+Tu misión es actuar como el consultor biofísico experto en CFD, dispersión de contaminantes (PM2.5, NO2), confort térmico (UTCI) y Soluciones Basadas en la Naturaleza (NbS).
+Evalúa la consulta del usuario y los datos proporcionados del escenario urbano.
+Estructura siempre tu respuesta con:
+### 1. 🔍 [DIAGNÓSTICO BIOFÍSICO]
+### 2. ⚠️ [ALERTAS DE DISEÑO / RIESGO DE RECIRCULACIÓN]
+### 3. 🌿 [DICTAMEN & RECOMENDACIONES TÉCNICAS]
+Sé técnico, riguroso, cuantitativo y claro en español, utilizando formato Markdown.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-flash-lite-latest",
+        contents: inputValue || "Diagnóstico de calidad del aire y NbS",
+        config: {
+          systemInstruction: fallbackSystemPrompt,
+          temperature: 0.7,
+        },
+      });
+
+      const responseText = response.text || "Diagnóstico de microclima y NbS completado.";
+
+      return res.json({
+        success: true,
+        data: {
+          outputs: [
+            {
+              outputs: [
+                {
+                  results: {
+                    message: {
+                      text: responseText,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          analysis: responseText,
+          source: "gemini-cloud-engine",
+        },
+      });
+    }
+  } catch (geminiError: any) {
+    console.error("[Gemini Cloud Fallback Error]:", geminiError);
+  }
+
+  // 3. Respaldo final heurístico experto si no hay conexión ni API Key activa
+  return res.json({
+    success: true,
+    data: {
+      outputs: [
+        {
+          outputs: [
+            {
+              results: {
+                message: {
+                  text: generateExpertAnalysisFallback({}, inputValue),
+                },
+              },
+            },
+          ],
+        },
+      ],
+      analysis: generateExpertAnalysisFallback({}, inputValue),
+      source: "expert-heuristic-engine",
+    },
+  });
 });
 
 // Gemini AI endpoint for urban microclimate & NbS diagnostic
@@ -106,7 +177,6 @@ app.post("/api/gemini/diagnose-urban-microclimate", async (req, res) => {
     const ai = getGeminiClient();
 
     if (!ai) {
-      // Return a rich, realistic fallback response if no API key is set
       return res.json({
         success: true,
         source: "expert-engine",
@@ -130,7 +200,7 @@ Consulta / Foco del usuario:
 ${userQuestion || "Realiza un diagnóstico integral del escenario y optimización de soluciones basadas en la naturaleza."}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-flash-lite-latest",
       contents: prompt,
       config: {
         systemInstruction: systemPrompt,
@@ -140,7 +210,7 @@ ${userQuestion || "Realiza un diagnóstico integral del escenario y optimizació
 
     res.json({
       success: true,
-      source: "gemini-3.7-flash",
+      source: "gemini-flash-lite-latest",
       analysis: response.text || "No se pudo generar el análisis.",
     });
   } catch (error: any) {

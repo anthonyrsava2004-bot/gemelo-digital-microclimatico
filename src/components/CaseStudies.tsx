@@ -342,6 +342,7 @@ export const CaseStudies: React.FC<CaseStudiesProps> = ({ onSelectPreset, active
         {/* ExplainabilityCard para la Sección de Casos de Estudio */}
         <ExplainabilityCard
           title="Regímenes Aerodinámicos CFD y Selección Tipológica según H/W"
+          defaultExpanded={false}
           physicsPrinciple="La clasificación de Oke (1988) divide los cañones en tres regímenes fluidodinámicos: (1) Rugosidad Aislada (H/W < 0.3), donde el aire circula sin interferencias; (2) Interferencia de Estela (0.3 ≤ H/W < 0.7), donde los vórtices de fachada comienzan a interactuar; y (3) Flujo Rasante o Skimming Flow (H/W ≥ 0.7-1.5), donde el viento salta por encima de los tejados y crea un circuito cerrado de recirculación que atrapa el escape vehicular en la calzada."
           regulatoryThreshold="Directiva 2008/50/CE y Criterios UNE-EN ISO 7730 de Ergonomía del Ambiente Térmico."
           decisionImpact="Evita el error común de aplicar la misma solución verde en cualquier calle: en cañones muy profundos (H/W = 2.0), un árbol excesivamente frondoso bloquea el vórtice y aumenta la contaminación a nivel de peatón; en cambio, en cañones abiertos (H/W = 0.8), la prioridad absoluta es la sombra densa."

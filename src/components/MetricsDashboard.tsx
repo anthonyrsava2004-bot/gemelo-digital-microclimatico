@@ -228,6 +228,7 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
       {/* Explicabilidad de los KPIs Globales y Botón de Grabación CSV */}
       <ExplainabilityCard
         title="Balance Multiobjetivo de Mitigación Ambiental y Sanitaria (KPIs)"
+        defaultExpanded={false}
         physicsPrinciple="La combinación sinérgica de arbolado de sombra, setos deflectores y techos verdes genera un desacoplamiento térmico y de contaminantes: el dosel intercepta la radiación directa reduciendo Tmrt (-4.8°C), mientras que las superficies permeables y la deposición seca atrapan el material particulado vehicular antes de alcanzar el nivel respiratorio."
         regulatoryThreshold="Alineado con los Objetivos de Desarrollo Sostenible (ODS 3 Salud y Bienestar, ODS 11 Ciudades Resilientes) y la Directriz de Calidad del Aire de la OMS (límite anual 5 µg/m³, diario 15 µg/m³)."
         decisionImpact="Permite a los ayuntamientos cuantificar el retorno social y económico de la infraestructura verde (SROI), justificando la inversión pública mediante costes sanitarios evitados en asma e ingresos hospitalarios."
@@ -642,6 +643,7 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
         {/* ExplainabilityCard para la Tabla y Gráfica de Receptores */}
         <ExplainabilityCard
           title="Exposición en Receptores Sensibles y Protección a Cota Respiratoria"
+          defaultExpanded={false}
           physicsPrinciple="La altura respiratoria de los niños en edad escolar (0.8m a 1.2m) coincide exactamente con la altura de máxima concentración de la pluma de escape vehicular en acera. Los setos vivos de media altura actúan como pantallas acústicas y filtros de deposición seca, reduciendo la exposición en escuelas y paradas hasta un 45% sin bloquear la ventilación superior."
           regulatoryThreshold="Guía de Calidad del Aire OMS 2021: 15 µg/m³ para PM2.5. Ningún equipamiento escolar o sociosanitario debería registrar promedios continuos superiores a este umbral."
           decisionImpact="Permite a los planificadores justificar la colocación prioritaria de intervenciones botánicas frente a puertas de colegios, residencias y marquesinas de transporte público."

@@ -205,6 +205,7 @@ ${placedNbS.map((n) => `- ${NBS_CATALOG.find((cat) => cat.id === n.type)?.name} 
           {/* Explicabilidad de Condiciones de Contorno */}
           <ExplainabilityCard
             title="Morfología del Cañón y Condiciones de Contorno Microclimático"
+            defaultExpanded={false}
             physicsPrinciple="La relación de aspecto H/W (altura de edificios respecto al ancho de calle) gobierna el número de vórtices de recirculación en el cañón. En cañones con H/W > 1.5, el intercambio turbulento con el aire exterior se estrangula, requiriendo estrategias de diseño botánico de alta porosidad."
             regulatoryThreshold="Criterio de clasificación morfológica Oke (1988): Régimen de flujo rasante (H/W > 0.7) genera acumulación de pluma contaminante en la acera de sotavento."
             decisionImpact="Determina la capacidad de absorción máxima de tráfico del eje viario antes de generar concentraciones que violen la directiva europea."
@@ -314,6 +315,7 @@ ${placedNbS.map((n) => `- ${NBS_CATALOG.find((cat) => cat.id === n.type)?.name} 
           {/* Explicabilidad de los Resultados Cuantitativos */}
           <ExplainabilityCard
             title="Eficiencia Biofísica y Modelo de Retorno en Salud SROI"
+            defaultExpanded={false}
             physicsPrinciple="La reducción de PM2.5 responde al régimen de deposición seca turbulenta descrito por el modelo de Slinn. El descenso de temperatura radica en la atenuación de radiación solar de onda corta y el enfriamiento evaporativo latente de 180-260 W/m² generado por las especies botánicas calibradas."
             regulatoryThreshold="Directiva de Calidad del Aire de la UE y Guías de la OMS (2021). Umbral máximo admisible de 15 µg/m³ para PM2.5."
             decisionImpact="Permite justificar solicitudes de fondos europeos de recuperación (NextGen / Resiliencia Urbana) mediante indicadores cuantitativos verificables."

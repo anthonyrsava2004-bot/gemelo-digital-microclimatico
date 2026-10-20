@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Building,
   Camera,
-  Check
+  Check,
+  BookOpen
 } from 'lucide-react';
 import { exportCanvasAsHighResImage } from '../utils/exportUtils';
 import { ExplainabilityCard } from './ExplainabilityCard';
@@ -65,6 +66,7 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
   const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
   const [showSplitMode, setShowSplitMode] = useState<boolean>(false);
   const [exportSuccess, setExportSuccess] = useState<boolean>(false);
+  const [showExplainability, setShowExplainability] = useState<boolean>(true);
 
   const EXPLAINABILITY_BY_LAYER: Record<LayerMode, {
     title: string;
@@ -947,6 +949,20 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
             {exportSuccess ? <Check className="w-3.5 h-3.5 text-emerald-200" /> : <Camera className="w-3.5 h-3.5 text-emerald-200" />}
             <span>{exportSuccess ? '¡Grabado!' : 'Grabar Figura HD'}</span>
           </button>
+
+          {/* Toggle Explicabilidad XAI */}
+          <button
+            onClick={() => setShowExplainability(!showExplainability)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+              showExplainability
+                ? 'bg-sky-600/30 text-sky-200 border-sky-400 shadow-sm'
+                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+            }`}
+            title="Mostrar u ocultar tarjeta de interpretabilidad y física de la capa"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+            <span>{showExplainability ? 'Ocultar XAI' : 'Ver Explicabilidad'}</span>
+          </button>
         </div>
       </div>
 
@@ -1114,17 +1130,20 @@ export const DigitalTwinCanvas: React.FC<DigitalTwinCanvasProps> = ({
       </div>
 
       {/* Dynamic Scientific Explainability & Interpretability Card */}
-      <div className="p-3 bg-slate-950/90 border-t border-slate-800">
-        <ExplainabilityCard
-          title={EXPLAINABILITY_BY_LAYER[activeLayer].title}
-          physicsPrinciple={EXPLAINABILITY_BY_LAYER[activeLayer].physicsPrinciple}
-          regulatoryThreshold={EXPLAINABILITY_BY_LAYER[activeLayer].regulatoryThreshold}
-          decisionImpact={EXPLAINABILITY_BY_LAYER[activeLayer].decisionImpact}
-          recommendedAction={EXPLAINABILITY_BY_LAYER[activeLayer].recommendedAction}
-          onExportImage={handleExportCanvasHD}
-          exportImageLabel="Grabar Figura Canvas (PNG 4K)"
-        />
-      </div>
+      {showExplainability && (
+        <div className="p-3 bg-slate-950/95 border-t border-slate-800">
+          <ExplainabilityCard
+            title={EXPLAINABILITY_BY_LAYER[activeLayer].title}
+            physicsPrinciple={EXPLAINABILITY_BY_LAYER[activeLayer].physicsPrinciple}
+            regulatoryThreshold={EXPLAINABILITY_BY_LAYER[activeLayer].regulatoryThreshold}
+            decisionImpact={EXPLAINABILITY_BY_LAYER[activeLayer].decisionImpact}
+            recommendedAction={EXPLAINABILITY_BY_LAYER[activeLayer].recommendedAction}
+            defaultExpanded={false}
+            onExportImage={handleExportCanvasHD}
+            exportImageLabel="Grabar Figura Canvas (PNG 4K)"
+          />
+        </div>
+      )}
     </div>
   );
 };
